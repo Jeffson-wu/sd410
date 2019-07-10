@@ -1165,6 +1165,7 @@ static int hmts_probe(struct i2c_client *client,
 	}
 #endif
 
+#if 0
 	reg_addr = HM_SCAN_CNT;
 	err = hmts_i2c_read(client, &reg_addr, 1, &reg_value, 1);
 	printk("hmts HM_SCAN_CNT [%x]\n",reg_value);
@@ -1189,6 +1190,7 @@ static int hmts_probe(struct i2c_client *client,
 	reg_addr = HM_VSWIP_DST;
 	err = hmts_i2c_read(client, &reg_addr, 1, &reg_value, 1);
 	printk("hmts HM_VSWIP_DST [%x]\n",reg_value);
+#endif
 
 	err = hmts_write_reg(client, HM_SCAN_CNT, 6);
 	err = hmts_write_reg(client, HM_HYSTER, 3);// org 4
