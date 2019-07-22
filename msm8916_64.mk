@@ -105,11 +105,6 @@ PRODUCT_COPY_FILES += \
     device/qcom/msm8916_64/i2cget:system/bin/i2cget \
     device/qcom/msm8916_64/i2cset:system/bin/i2cset \
     device/qcom/msm8916_64/i2ctransfer:system/bin/i2ctransfer \
-#    device/qcom/msm8916_64/i2cdetect:data/i2cdetect \
-#    device/qcom/msm8916_64/i2cdump:data/i2cdump \
-#    device/qcom/msm8916_64/i2cget:data/i2cget \
-#    device/qcom/msm8916_64/i2cset:data/i2cset \
-#    device/qcom/msm8916_64/i2ctransfer:data/i2ctransfer \
     device/qcom/msm8916_64/inkey.sh:system/bin/inkey.sh
 
 PRODUCT_PACKAGES += \
