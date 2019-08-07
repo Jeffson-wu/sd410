@@ -58,7 +58,7 @@
 				debounce-interval = <100>;
 			};
 		};
-move */
+ move */
 		/* Borderless DSI to RGB */
 		vx5b3a@64 {
 			compatible = "quicklogic,vx5b3a";

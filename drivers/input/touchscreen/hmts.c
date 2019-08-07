@@ -504,8 +504,13 @@ static void hmts_poll(struct work_struct *work)
 //				input_sync(ip_dev);
 				volumn_bar = true;
 				break;
-			case 0x20:
 			case 0x10:
+			case 0x20:
+				input_report_key(ip_dev, KEY_PLAYPAUSE, 1);
+				input_sync(ip_dev);
+				input_report_key(ip_dev, KEY_PLAYPAUSE, 0);
+				prv_ges = KEY_PLAYPAUSE;
+				break;
 			case 0x11:
 				if(volumn_bar){
 					input_report_key(ip_dev, prv_ges, 1);
@@ -1049,14 +1054,13 @@ static int hmts_probe(struct i2c_client *client,
 	__set_bit(INPUT_PROP_DIRECT, input_dev->propbit);
 	__set_bit(KEY_VOLUMEUP, input_dev->keybit);   
 	__set_bit(KEY_VOLUMEDOWN, input_dev->keybit);   
-	__set_bit(KEY_UP, input_dev->keybit);
-	__set_bit(KEY_DOWN, input_dev->keybit);
-	__set_bit(KEY_LEFT, input_dev->keybit);
-	__set_bit(KEY_RIGHT, input_dev->keybit);
+//	__set_bit(KEY_UP, input_dev->keybit);
+//	__set_bit(KEY_DOWN, input_dev->keybit);
+//	__set_bit(KEY_LEFT, input_dev->keybit);
+//	__set_bit(KEY_RIGHT, input_dev->keybit);
 	__set_bit(KEY_PREVIOUSSONG, input_dev->keybit);
 	__set_bit(KEY_NEXTSONG, input_dev->keybit);
-	__set_bit(KEY_OK, input_dev->keybit);
-	__set_bit(KEY_BACK, input_dev->keybit);
+	__set_bit(KEY_PLAYPAUSE, input_dev->keybit);
 
 #if MOUSE_MODE
 	input_mt_init_slots(input_dev, pdata->num_max_touches, 0);

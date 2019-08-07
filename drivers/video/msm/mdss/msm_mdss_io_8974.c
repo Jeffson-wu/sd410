@@ -609,8 +609,9 @@ printk("eztest 8974 *************clk div lane:%d format:%d***********\n",lanes,p
 		break;
 	}
 
-	h_period = mdss_panel_get_htotal(panel_info, true);
+	h_period = mdss_panel_get_htotal(panel_info, true);// org true
 	v_period = mdss_panel_get_vtotal(panel_info);
+printk("eztest 8974 0 **********h period:%d v period:%d panel clk:%d************\n",h_period,v_period,panel_info->clk_rate);
 	if (ctrl_pdata->refresh_clk_rate || (frame_rate !=
 	     panel_info->mipi.frame_rate) ||
 	    (!panel_info->clk_rate)) {
@@ -629,7 +630,7 @@ printk("eztest 8974 *************clk div lane:%d format:%d***********\n",lanes,p
 		}
 	}
 	pll_divider_config.clk_rate = panel_info->clk_rate;
-printk("eztest 8974 **********h period:%d v period:%d panel clk:%d************\n",h_period,v_period,panel_info->clk_rate);
+printk("eztest 8974 1 **********h period:%d v period:%d panel clk:%d************\n",h_period,v_period,panel_info->clk_rate);
 
 
 	if (pll_divider_config.clk_rate == 0)

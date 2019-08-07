@@ -1405,7 +1405,7 @@ static int mdss_panel_parse_dt(struct device_node *np,
 	u32 tmp;
 	int rc, i, len;
 	const char *data;
-	static const char *pdest;
+//	static const char *pdest;
 	struct mdss_panel_info *pinfo = &(ctrl_pdata->panel_data.panel_info);
 #if 0
 	rc = of_property_read_u32(np, "qcom,mdss-dsi-panel-width", &tmp);
@@ -1451,12 +1451,14 @@ static int mdss_panel_parse_dt(struct device_node *np,
 		return -EINVAL;
 	}
 	pinfo->bpp = (!rc ? tmp : 24);
+	printk("eztest-----------> dsi panel xpad:%d ypad:%d bpp:%d\n", pinfo->lcdc.xres_pad, pinfo->lcdc.yres_pad,pinfo->bpp);
 	pinfo->mipi.mode = DSI_VIDEO_MODE;
 	data = of_get_property(np, "qcom,mdss-dsi-panel-type", NULL);
 	if (data && !strncmp(data, "dsi_cmd_mode", 12))
 		pinfo->mipi.mode = DSI_CMD_MODE;
 	printk("eztest -------->mipi mode:%d\n",pinfo->mipi.mode);
 	tmp = 0;
+#if 0
 	data = of_get_property(np, "qcom,mdss-dsi-pixel-packing", NULL);
 	if (data && !strcmp(data, "loose"))
 		pinfo->mipi.pixel_packing = 1;
@@ -1471,6 +1473,8 @@ static int mdss_panel_parse_dt(struct device_node *np,
 		pinfo->mipi.dst_format =
 			DSI_VIDEO_DST_FORMAT_RGB888;
 	}
+		pinfo->mipi.dst_format =
+			DSI_VIDEO_DST_FORMAT_RGB888;
 	pdest = of_get_property(np,
 		"qcom,mdss-dsi-panel-destination", NULL);
 
@@ -1493,6 +1497,12 @@ static int mdss_panel_parse_dt(struct device_node *np,
 				__func__);
 		pinfo->pdest = DISPLAY_1;
 	}
+#else
+	pinfo->mipi.pixel_packing = 0;
+	pinfo->mipi.dst_format = DSI_VIDEO_DST_FORMAT_RGB888;
+	pinfo->pdest = DISPLAY_1;
+#endif
+
 #if 0 // org parsing dtsi
 	rc = of_property_read_u32(np, "qcom,mdss-dsi-h-front-porch", &tmp);
 	pinfo->lcdc.h_front_porch = (!rc ? tmp : 6);
@@ -1510,10 +1520,10 @@ static int mdss_panel_parse_dt(struct device_node *np,
 	pinfo->lcdc.v_pulse_width = (!rc ? tmp : 2);
 #else
  #if 1// setting 8
-	pinfo->lcdc.h_front_porch = 102;
-	pinfo->lcdc.h_back_porch = 60;
-	pinfo->lcdc.h_pulse_width = 66;
-	pinfo->lcdc.hsync_skew = 0;
+	pinfo->lcdc.h_front_porch = 100;// org 102 std 96 tm 96
+	pinfo->lcdc.h_back_porch = 60;// org 60 std 58 tm 60
+	pinfo->lcdc.h_pulse_width = 64;// org 66 std 64 tm 64
+	pinfo->lcdc.hsync_skew = 4;
 	pinfo->lcdc.v_back_porch = 32;
 	pinfo->lcdc.v_front_porch = 127;
 	pinfo->lcdc.v_pulse_width = 6;
@@ -1524,7 +1534,7 @@ static int mdss_panel_parse_dt(struct device_node *np,
 	pinfo->lcdc.hsync_skew = 0;
 	pinfo->lcdc.v_back_porch = 32;
 	pinfo->lcdc.v_front_porch = 127;
-	pinfo->lcdc.v_pulse_width = 5;
+	pinfo->lcdc.v_pulse_width = 6;//set22:5 set8:6
  #endif
 #endif
 	printk("eztest-----------> dsi panel hfp:%d hbp:%d hpw:%d\n", pinfo->lcdc.h_front_porch, pinfo->lcdc.h_back_porch, pinfo->lcdc.h_pulse_width);
@@ -1532,9 +1542,11 @@ static int mdss_panel_parse_dt(struct device_node *np,
 	rc = of_property_read_u32(np,
 		"qcom,mdss-dsi-underflow-color", &tmp);
 	pinfo->lcdc.underflow_clr = (!rc ? tmp : 0xff);
+//	pinfo->lcdc.underflow_clr = 0;
 	rc = of_property_read_u32(np,
 		"qcom,mdss-dsi-border-color", &tmp);
 	pinfo->lcdc.border_clr = (!rc ? tmp : 0);
+//	pinfo->lcdc.border_clr = 0xff;
 	data = of_get_property(np, "qcom,mdss-dsi-panel-orientation", NULL);
 	if (data) {
 		pr_debug("panel orientation is %s\n", data);
@@ -1605,6 +1617,8 @@ static int mdss_panel_parse_dt(struct device_node *np,
 	pinfo->bl_max = (!rc ? tmp : 255);
 	ctrl_pdata->bklt_max = pinfo->bl_max;
 
+
+#if 0
 	rc = of_property_read_u32(np, "qcom,mdss-dsi-interleave-mode", &tmp);
 	pinfo->mipi.interleave_mode = (!rc ? tmp : 0);
 
@@ -1656,6 +1670,8 @@ static int mdss_panel_parse_dt(struct device_node *np,
 			(!rc ? tmp : 1);
 	rc = of_property_read_u32(np, "qcom,mdss-dsi-virtual-channel-id", &tmp);
 	pinfo->mipi.vc = (!rc ? tmp : 0);
+	printk("eztest panel ********dcs:%x memc:%d mems:%d sel:%d vc:%d\n",pinfo->mipi.insert_dcs_cmd,pinfo->mipi.wr_mem_continue,pinfo->mipi.wr_mem_start,
+	pinfo->mipi.te_sel,pinfo->mipi.vc);
 	pinfo->mipi.rgb_swap = DSI_RGB_SWAP_RGB;
 	data = of_get_property(np, "qcom,mdss-dsi-color-order", NULL);
 	if (data) {
@@ -1678,7 +1694,7 @@ static int mdss_panel_parse_dt(struct device_node *np,
 		"qcom,mdss-dsi-lane-2-state");
 	pinfo->mipi.data_lane3 = of_property_read_bool(np,
 		"qcom,mdss-dsi-lane-3-state");
-
+	printk("eztest panel*****lan0:%d lan1:%d lan2:%d lan3:%d\n",pinfo->mipi.data_lane0,pinfo->mipi.data_lane1,pinfo->mipi.data_lane2,pinfo->mipi.data_lane3);
 	rc = of_property_read_u32(np, "qcom,mdss-dsi-t-clk-pre", &tmp);
 	pinfo->mipi.t_clk_pre = (!rc ? tmp : 0x24);
 //	pinfo->mipi.t_clk_pre = 20;
@@ -1703,15 +1719,46 @@ static int mdss_panel_parse_dt(struct device_node *np,
 	} else {
 		pinfo->mode_gpio_state = MODE_GPIO_NOT_VALID;
 	}
+	printk("eztest panel *****pre:%d post:%d ign:%d app:%d str:%d sta:%d\n",pinfo->mipi.t_clk_pre,pinfo->mipi.t_clk_post,pinfo->mipi.rx_eot_ignore,
+	pinfo->mipi.tx_eot_append,pinfo->mipi.stream,pinfo->mode_gpio_state);
 
+#else
+	pinfo->mipi.interleave_mode = 0;
+	pinfo->mipi.vsync_enable = 1;
+	pinfo->mipi.hw_vsync_mode = 1;
+	pinfo->mipi.pulse_mode_hsa_he = 1;
+	pinfo->mipi.hfp_power_stop = 0;
+	pinfo->mipi.hsa_power_stop = 0;
+	pinfo->mipi.hbp_power_stop = 0;
+	pinfo->mipi.last_line_interleave_en = 1;
+	pinfo->mipi.bllp_power_stop = 1;
+	pinfo->mipi.eof_bllp_power_stop = 1;
+	pinfo->mipi.traffic_mode = DSI_NON_BURST_SYNCH_PULSE;
+	pinfo->mipi.insert_dcs_cmd = 1;
+	pinfo->mipi.wr_mem_continue = 0x3c;
+	pinfo->mipi.wr_mem_start = 0x2c;
+	pinfo->mipi.te_sel = 1;
+	pinfo->mipi.vc = 0;
+	pinfo->mipi.rgb_swap = DSI_RGB_SWAP_RGB;
+	pinfo->mipi.data_lane0 = 1;
+	pinfo->mipi.data_lane1 = 1;
+	pinfo->mipi.data_lane2 = 1;
+	pinfo->mipi.data_lane3 = 1;
+	pinfo->mipi.t_clk_pre = 0x11;
+	pinfo->mipi.t_clk_post = 5;
+	pinfo->mipi.rx_eot_ignore = 0;
+	pinfo->mipi.tx_eot_append = 0;
+	pinfo->mipi.stream = 0;
+	pinfo->mode_gpio_state = MODE_GPIO_LOW;
+#endif
 	rc = of_property_read_u32(np, "qcom,mdss-dsi-panel-framerate", &tmp);
 //	pinfo->mipi.frame_rate = (!rc ? tmp : 60);
 	pinfo->mipi.frame_rate = 60;// best one 65
 	printk("eztest---------------> dsi panel frame rate set:%d mode gpio:%d\n", pinfo->mipi.frame_rate,pinfo->mode_gpio_state);
 //	rc = of_property_read_u32(np, "qcom,mdss-dsi-panel-clockrate", &tmp);
-//	pinfo->clk_rate = (!rc ? tmp : 0);// setting 22
-//	pinfo->clk_rate = 180001000;// test 179999960
-	pinfo->clk_rate = 180000000;// best one 177723072 177723080 177723088 180000080 180000064
+	pinfo->clk_rate = 0;//(!rc ? tmp : 0);// setting 22
+//	pinfo->clk_rate = 162162000;// test 172104000 172100000 172101000 172102000 172103000 172099000 172098000 172097000 172096000 172092000
+//	pinfo->clk_rate = 180000000;// best one 177723072 177723080 177723088 180000080 180000064
 	printk("eztest---------------> dsi panel clock rate:%d\n",pinfo->clk_rate);
 	data = of_get_property(np, "qcom,mdss-dsi-panel-timings", &len);
 	if ((!data) || (len != 12)) {
@@ -1721,15 +1768,18 @@ static int mdss_panel_parse_dt(struct device_node *np,
 	}
 	for (i = 0; i < len; i++)
 		pinfo->mipi.dsi_phy_db.timing[i] = data[i];
+//		pinfo->mipi.dsi_phy_db.timing[i] = 0;
 
 //	pinfo->mipi.lp11_init = of_property_read_bool(np,
 //					"qcom,mdss-dsi-lp11-init");
 	pinfo->mipi.lp11_init = 1;
 	rc = of_property_read_u32(np, "qcom,mdss-dsi-init-delay-us", &tmp);
 	pinfo->mipi.init_delay = (!rc ? tmp : 0);
+//	pinfo->mipi.init_delay = 100;
 
 	rc = of_property_read_u32(np, "qcom,mdss-dsi-post-init-delay", &tmp);
 	pinfo->mipi.post_init_delay = (!rc ? tmp : 0);
+//	pinfo->mipi.post_init_delay = 1;
 
 	mdss_dsi_parse_roi_alignment(np, pinfo);
 
@@ -1788,9 +1838,11 @@ static int mdss_panel_parse_dt(struct device_node *np,
 
 	pinfo->mipi.force_clk_lane_hs = of_property_read_bool(np,
 		"qcom,mdss-dsi-force-clock-lane-hs");
+	pinfo->mipi.force_clk_lane_hs = 1;
 
 	pinfo->mipi.always_on = of_property_read_bool(np,
 		"qcom,mdss-dsi-always-on");
+//	pinfo->mipi.always_on = 0;
 	rc = mdss_dsi_parse_panel_features(np, ctrl_pdata);
 	if (rc) {
 		pr_err("%s: failed to parse panel features\n", __func__);
