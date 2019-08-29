@@ -64,6 +64,11 @@
 			compatible = "quicklogic,vx5b3a";
 			reg = <0x64>;
 		};
+		/* Borderless power gauges */
+		bq27621@55 {
+			compatible = "ti,bq27621";
+			reg = <0x55>;
+		};
 	};
 	i2c@78b8000 { /* BLSP1 QUP4 */
         status = "ok";
