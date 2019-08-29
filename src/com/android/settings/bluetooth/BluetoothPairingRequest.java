@@ -67,10 +67,12 @@ public final class BluetoothPairingRequest extends BroadcastReceiver {
             PowerManager powerManager =
                     (PowerManager)context.getSystemService(Context.POWER_SERVICE);
             String deviceAddress = device != null ? device.getAddress() : null;
-            if (powerManager.isScreenOn() &&
+/*            if (powerManager.isScreenOn() &&
                     LocalBluetoothPreferences.shouldShowDialogInForeground(context, deviceAddress)) {
                 // Since the screen is on and the BT-related activity is in the foreground,
-                // just open the dialog
+                // just open the dialog */
+//Modified for bluetooth auto paring
+	    if(true) {
                 context.startActivity(pairingIntent);
             } else {
                 // Put up a notification that leads to the dialog

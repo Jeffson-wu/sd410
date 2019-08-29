@@ -325,6 +325,10 @@ public final class BluetoothPairingDialog extends AlertActivity implements
         p.mNegativeButtonText = getString(R.string.bluetooth_pairing_decline);
         p.mNegativeButtonListener = this;
         setupAlert();
+
+	Button mPositiveButton;
+	mPositiveButton = mAlert.getButton(BUTTON_POSITIVE);
+	mPositiveButton.performClick();
     }
 
     private void createConsentDialog() {
