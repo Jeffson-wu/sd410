@@ -107,6 +107,12 @@ PRODUCT_COPY_FILES += \
     device/qcom/msm8916_64/i2ctransfer:system/bin/i2ctransfer \
     device/qcom/msm8916_64/inkey.sh:system/bin/inkey.sh
 
+#OTA files
+PRODUCT_COPY_FILES += \
+    device/qcom/msm8916_64/rom.ota.prop:system/rom.ota.prop \
+    device/qcom/msm8916_64/kernel.ota.prop:system/kernel.ota.prop \
+    device/qcom/msm8916_64/com.otaudater.feature.xml:system/etc/permissions/com.otaudater.feature.xml
+
 PRODUCT_PACKAGES += \
     wpa_supplicant_overlay.conf \
     p2p_supplicant_overlay.conf
