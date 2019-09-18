@@ -71,7 +71,7 @@
 #include	<linux/of_gpio.h>
 #include	<linux/sensors.h>
 
-#define	DEBUG	1
+#define	DEBUG	0
 
 /*Calibration*/
 #define LIS3DH_CAL_SKIP_COUNT 5

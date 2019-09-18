@@ -69,6 +69,11 @@
 			compatible = "ti,bq27621";
 			reg = <0x55>;
 		};
+		/* Borderless power gauges */
+		ltr329@29 {
+			compatible = "liteon,ltr329";
+			reg = <0x29>;
+		};
 	};
 	i2c@78b8000 { /* BLSP1 QUP4 */
         status = "ok";

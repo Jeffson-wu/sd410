@@ -50,15 +50,17 @@
 #define LTR329_REG_INTERRUPT		0x8F
 #define LTR329_REG_MAGIC		0xFF
 
-#define LTR329_PART_ID			0x0A
+#define LTR329_PART_ID			0xA0
 
 #define LTR329_ALS_SENSITIVITY		70
+#define LTR329_PS_LUX				70
 
 #define LTR329_BOOT_TIME_MS		120
 #define LTR329_WAKE_TIME_MS		10
 
 #define LTR329_PS_SATURATE_MASK		0x8000
 #define LTR329_ALS_INT_MASK		0x08
+#define LTR329_ALS_NEW_MASK		0x04
 #define LTR329_PS_INT_MASK		0x02
 
 #define LTR329_ALS_MEASURE_MASK		0x38
@@ -66,6 +68,7 @@
 
 /* default measurement rate is 100 ms */
 #define LTR329_ALS_DEFAULT_MEASURE_RATE	0x01
+//#define LTR329_ALS_DEFAULT_ALS_GAIN	0x07
 #define LTR329_PS_MEASUREMENT_RATE_10MS	0x08
 
 #define LTR329_CALIBRATE_SAMPLES	15
@@ -79,6 +82,11 @@
 #define ALS_LOW_BYTE(data)		((data) & 0xff)
 #define ALS_HIGH_BYTE(data)		(((data) >> 8) & 0xff)
 
+/* LTR329 PS data is 11 bit */
+#define PS_DATA_MASK			0x7ff
+#define PS_LOW_BYTE(data)		((data) & 0xff)
+#define PS_HIGH_BYTE(data)		(((data) >> 8) & 0x7)
+
 /* Calculated by 10% transmittance */
 #define LTR329_MAX_LUX			(ALS_DATA_MASK * 10)
 
@@ -89,6 +97,9 @@
 #define LTR329_WAKEUP_ANY_CHANGE	0xff
 
 #define CAL_BUF_LEN			16
+
+#define POLL_INTERVAL		500
+
 enum {
 	CMD_WRITE = 0,
 	CMD_READ = 1,
@@ -120,11 +131,11 @@ struct ltr329_data {
 	struct mutex		ops_lock;
 	ktime_t			last_als_ts;
 	ktime_t			last_ps_ts;
-	struct work_struct	report_work;
-	struct work_struct	als_enable_work;
-	struct work_struct	als_disable_work;
-	struct work_struct	ps_enable_work;
-	struct work_struct	ps_disable_work;
+	struct delayed_work	report_work;
+//	struct work_struct	als_enable_work;
+//	struct work_struct	als_disable_work;
+//	struct work_struct	ps_enable_work;
+//	struct work_struct	ps_disable_work;
 	atomic_t		wake_count;
 
 	int			irq_gpio;
@@ -164,7 +175,7 @@ struct als_coeff {
 	int win_fac;
 	int sign;
 } __attribute__((__packed__));
-
+#if 0
 static struct regulator_map power_config[] = {
 	{.supply = "vdd", .min_uv = 2000000, .max_uv = 3300000, },
 	{.supply = "vio", .min_uv = 1750000, .max_uv = 1950000, },
@@ -173,7 +184,7 @@ static struct regulator_map power_config[] = {
 static struct pinctrl_config pin_config = {
 	.name = { "default", "sleep" },
 };
-
+#endif
 static struct als_coeff eqtn_map[] = {
 	{
 		.ch0_coeff_i = 1,
@@ -214,16 +225,17 @@ static int als_int_fac_table[] = { 10, 5, 20, 40, 15, 25, 30, 35 };
 /* ALS gain table, index 4 & 5 are reserved */
 static int als_gain_table[] = {1, 2, 4, 8, 1, 1, 48, 96};
 /* ALS measurement repeat rate in ms */
-static int als_mrr_table[] = {50, 100, 200, 500, 1000, 2000, 2000, 2000};
+//static int als_mrr_table[] = {50, 100, 200, 500, 1000, 2000, 2000, 2000};
 /* PS measurement repeat rate in ms */
-static int ps_mrr_table[] = { 50, 70, 100, 200, 500, 1000, 2000, 10,
-				10, 10, 10, 10, 10, 10, 10, 10};
+//static int ps_mrr_table[] = { 50, 70, 100, 200, 500, 1000, 2000, 10,
+//				10, 10, 10, 10, 10, 10, 10, 10};
 
 /* Tuned for devices with rubber */
-static int ps_distance_table[] =  { 790, 337, 195, 114, 78, 62, 50 };
+//static int ps_distance_table[] =  { 790, 337, 195, 114, 78, 62, 50 };
 
-static int sensitivity_table[] = {150, 150, 100, 100, 0, 0, 100, 1};
+//static int sensitivity_table[] = {150, 150, 100, 100, 0, 0, 100, 1};
 
+#if 0
 static struct sensors_classdev als_cdev = {
 	.name = "ltr329-light",
 	.vendor = "Lite-On Technology Corp",
@@ -243,7 +255,6 @@ static struct sensors_classdev als_cdev = {
 	.sensors_enable = NULL,
 	.sensors_poll_delay = NULL,
 };
-
 
 static int sensor_power_init(struct device *dev, struct regulator_map *map,
 		int size)
@@ -496,7 +507,7 @@ static int ltr329_parse_dt(struct device *dev, struct ltr329_data *ltr)
 
 	return 0;
 }
-
+#endif
 static int ltr329_check_device(struct ltr329_data *ltr)
 {
 	unsigned int part_id;
@@ -508,7 +519,6 @@ static int ltr329_check_device(struct ltr329_data *ltr)
 				LTR329_REG_PART_ID, rc);
 		return rc;
 	}
-
 	if (part_id != LTR329_PART_ID)
 		return -ENODEV;
 
@@ -531,6 +541,8 @@ static int ltr329_init_input(struct ltr329_data *ltr)
 	input->id.bustype = BUS_I2C;
 
 	input_set_capability(input, EV_ABS, ABS_MISC);
+	input_set_capability(input, EV_KEY, KEY_SLEEP);
+	input_set_capability(input, EV_KEY, KEY_WAKEUP);
 	input_set_abs_params(input, ABS_MISC, 0, LTR329_MAX_LUX, 0, 0);
 
 	status = input_register_device(input);
@@ -549,6 +561,10 @@ static int ltr329_init_device(struct ltr329_data *ltr)
 	int rc;
 	unsigned int tmp;
 
+	rc = regmap_write(ltr->regmap, LTR329_REG_ALS_CTL,
+			0x02);
+	msleep(LTR329_BOOT_TIME_MS);
+#if 0	
 	rc = regmap_write(ltr->regmap, LTR329_REG_ALS_MEAS_RATE,
 		(ltr->als_integration_time << 3) | (ltr->als_measure_rate));
 	if (rc) {
@@ -556,7 +572,7 @@ static int ltr329_init_device(struct ltr329_data *ltr)
 				LTR329_REG_ALS_MEAS_RATE);
 		return rc;
 	}
-
+#endif
 	/* set up als gain */
 	rc = regmap_read(ltr->regmap, LTR329_REG_ALS_CTL, &tmp);
 	if (rc) {
@@ -565,12 +581,15 @@ static int ltr329_init_device(struct ltr329_data *ltr)
 		return rc;
 	}
 	rc = regmap_write(ltr->regmap, LTR329_REG_ALS_CTL,
-			(tmp & (~0x1c)) | (ltr->als_gain << 2));
+			(tmp | 0x1));
 	if (rc) {
 		dev_err(&ltr->i2c->dev, "write %d register failed\n",
 				LTR329_REG_ALS_CTL);
 		return rc;
 	}
+	msleep(LTR329_BOOT_TIME_MS);
+//	rc = regmap_read(ltr->regmap, LTR329_REG_ALS_CTL, &tmp);
+//	printk("ltr329 init write read back ctl:%x rc:%d\n",tmp,rc);
 
 	return 0;
 }
@@ -608,6 +627,7 @@ static int ltr329_calc_lux(int ch0data, int ch1data, int gain, int als_int_fac)
 	return lux;
 }
 
+#if 0
 /* Calculate adc value based on lux. Return value is positive */
 static int ltr329_calc_adc(int ratio, int lux, int gain, int als_int_fac)
 {
@@ -752,6 +772,7 @@ static int ltr329_als_update_setting(struct ltr329_data *ltr,
 
 	return 0;
 }
+#endif
 
 static int ltr329_process_data(struct ltr329_data *ltr, int als_ps)
 {
@@ -765,9 +786,9 @@ static int ltr329_process_data(struct ltr329_data *ltr, int als_ps)
 	int ch0data;
 	int ch1data;
 
-	u8 ps_data[4];
-	int i;
-	int distance;
+//	u8 ps_data[4];
+//	int i;
+//	int distance;
 
 	timestamp = ktime_get_boottime();
 
@@ -782,14 +803,13 @@ static int ltr329_process_data(struct ltr329_data *ltr, int als_ps)
 		}
 		ch0data = als_data[2] | (als_data[3] << 8);
 		ch1data = als_data[0] | (als_data[1] << 8);
-
 		rc = regmap_read(ltr->regmap, LTR329_REG_ALS_MEAS_RATE, &tmp);
 		if (rc) {
 			dev_err(&ltr->i2c->dev, "read %d failed.(%d)\n",
 					LTR329_REG_ALS_MEAS_RATE, rc);
 			goto exit;
 		}
-
+#if 1
 		tmp = (tmp & LTR329_ALS_MEASURE_MASK) >> 3;
 		als_int_fac = als_int_fac_table[tmp];
 		lux = ltr329_calc_lux(ch0data, ch1data,
@@ -798,7 +818,7 @@ static int ltr329_process_data(struct ltr329_data *ltr, int als_ps)
 		dev_dbg(&ltr->i2c->dev, "lux:%d als_data:0x%x-0x%x-0x%x-0x%x\n",
 				lux, als_data[0], als_data[1],
 				als_data[2], als_data[3]);
-
+#endif
 		rc = regmap_read(ltr->regmap, LTR329_REG_ALS_PS_STATUS, &tmp);
 		if (rc) {
 			dev_err(&ltr->i2c->dev, "read %d failed.(%d)\n",
@@ -806,13 +826,22 @@ static int ltr329_process_data(struct ltr329_data *ltr, int als_ps)
 			goto exit;
 		}
 
-
 		if ((lux != ltr->last_als) && (!LTR329_ALS_INVALID(tmp))) {
 			input_report_abs(ltr->input_light, ABS_MISC, lux);
+			#if 0
 			input_event(ltr->input_light, EV_SYN, SYN_TIME_SEC,
 					ktime_to_timespec(timestamp).tv_sec);
 			input_event(ltr->input_light, EV_SYN, SYN_TIME_NSEC,
 					ktime_to_timespec(timestamp).tv_nsec);
+			#else
+			if((lux < LTR329_PS_LUX) && (ltr->last_als > LTR329_PS_LUX)){
+				input_event(ltr->input_light, EV_KEY, KEY_SLEEP, 1);
+				input_event(ltr->input_light, EV_KEY, KEY_SLEEP, 0);
+			}else if((lux > LTR329_PS_LUX) && (ltr->last_als < LTR329_PS_LUX)){
+				input_event(ltr->input_light, EV_KEY, KEY_WAKEUP, 1);
+				input_event(ltr->input_light, EV_KEY, KEY_WAKEUP, 0);
+			}
+			#endif
 			input_sync(ltr->input_light);
 
 			ltr->last_als_ts = timestamp;
@@ -822,14 +851,14 @@ static int ltr329_process_data(struct ltr329_data *ltr, int als_ps)
 
 		dev_dbg(&ltr->i2c->dev, "previous als_gain:%d\n",
 				ltr->als_gain);
-
+#if 0
 		rc = ltr329_als_update_setting(ltr, ch0data, ch1data,
 				als_int_fac);
 		if (rc) {
 			dev_err(&ltr->i2c->dev, "update setting failed\n");
 			goto exit;
 		}
-
+#endif
 		dev_dbg(&ltr->i2c->dev, "new als_gain:%d\n",
 				ltr->als_gain);
 
@@ -840,6 +869,7 @@ exit:
 	return rc;
 }
 
+#if 0
 static irqreturn_t ltr329_irq_handler(int irq, void *data)
 {
 	struct ltr329_data *ltr = data;
@@ -853,22 +883,30 @@ static irqreturn_t ltr329_irq_handler(int irq, void *data)
 
 	return IRQ_HANDLED;
 }
+#endif
 
 static void ltr329_report_work(struct work_struct *work)
 {
-	struct ltr329_data *ltr = container_of(work, struct ltr329_data,
-			report_work);
 	int rc;
 	unsigned int status;
 	u8 buf[7];
 
+	struct delayed_work *delayed_work;
+	struct ltr329_data *ltr;
+
+	delayed_work = container_of(work, struct delayed_work, work);
+//	data = container_of(delayed_work, struct hmts_data, hmts_work);
+	ltr = container_of(delayed_work, struct ltr329_data,report_work);
+
 	mutex_lock(&ltr->ops_lock);
 
+#if 0
 	/* avoid fake interrupt */
 	if (!ltr->power_enabled) {
 		dev_dbg(&ltr->i2c->dev, "fake interrupt triggered\n");
 		goto exit;
 	}
+#endif
 
 	/* read status */
 	rc = regmap_read(ltr->regmap, LTR329_REG_ALS_PS_STATUS, &status);
@@ -882,13 +920,13 @@ static void ltr329_report_work(struct work_struct *work)
 	dev_dbg(&ltr->i2c->dev, "interrupt issued status=0x%x.\n", status);
 
 	/* als interrupt issueed */
-	if ((status & LTR329_ALS_INT_MASK) && (ltr->als_enabled)) {
+	if (status & LTR329_ALS_NEW_MASK) {
 		rc = ltr329_process_data(ltr, 1);
 		if (rc)
 			goto exit;
 		dev_dbg(&ltr->i2c->dev, "process als done!\n");
 	}
-
+#if 0
 	if ((status & LTR329_PS_INT_MASK) && (ltr->ps_enabled)) {
 		rc = ltr329_process_data(ltr, 0);
 		if (rc)
@@ -896,6 +934,9 @@ static void ltr329_report_work(struct work_struct *work)
 		dev_dbg(&ltr->i2c->dev, "process ps data done!\n");
 		pm_wakeup_event(&ltr->input_proximity->dev, 200);
 	}
+#endif
+	schedule_delayed_work(&ltr->report_work,
+			msecs_to_jiffies(POLL_INTERVAL));
 
 exit:
 	if (atomic_dec_and_test(&ltr->wake_count)) {
@@ -911,7 +952,7 @@ exit:
 	mutex_unlock(&ltr->ops_lock);
 }
 
-
+#if 0
 static int ltr329_enable_als(struct ltr329_data *ltr, int enable)
 {
 	int rc = 0;
@@ -1100,12 +1141,14 @@ static void ltr329_als_disable_work(struct work_struct *work)
 exit:
 	mutex_unlock(&ltr->ops_lock);
 }
+#endif
 
 static struct regmap_config ltr329_regmap_config = {
 	.reg_bits = 8,
 	.val_bits = 8,
 };
 
+#if 0
 static int ltr329_cdev_enable_als(struct sensors_classdev *sensors_cdev,
 		unsigned int enable)
 {
@@ -1151,6 +1194,7 @@ static int ltr329_cdev_als_flush(struct sensors_classdev *sensors_cdev)
 
 	return 0;
 }
+#endif
 
 static ssize_t ltr329_register_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
@@ -1250,7 +1294,7 @@ static int ltr329_probe(struct i2c_client *client,
 	}
 
 	ltr->i2c = client;
-
+#if 0
 	if (client->dev.of_node) {
 		res = ltr329_parse_dt(&client->dev, ltr);
 		if (res) {
@@ -1263,7 +1307,7 @@ static int ltr329_probe(struct i2c_client *client,
 		res = -ENODEV;
 		goto out;
 	}
-
+#endif
 	dev_set_drvdata(&client->dev, ltr);
 	mutex_init(&ltr->ops_lock);
 
@@ -1274,7 +1318,7 @@ static int ltr329_probe(struct i2c_client *client,
 		res = PTR_ERR(ltr->regmap);
 		goto out;
 	}
-
+#if 0
 	res = sensor_power_init(&client->dev, power_config,
 			ARRAY_SIZE(power_config));
 	if (res) {
@@ -1294,7 +1338,7 @@ static int ltr329_probe(struct i2c_client *client,
 		dev_err(&client->dev, "init pinctrl failed.\n");
 		goto err_pinctrl_init;
 	}
-
+#endif
 	msleep(LTR329_BOOT_TIME_MS);
 
 	res = ltr329_check_device(ltr);
@@ -1305,12 +1349,13 @@ static int ltr329_probe(struct i2c_client *client,
 
 	ltr->als_measure_rate = LTR329_ALS_DEFAULT_MEASURE_RATE;
 
+//	ltr->als_gain = LTR329_ALS_DEFAULT_ALS_GAIN;
 	res = ltr329_init_device(ltr);
 	if (res) {
 		dev_err(&client->dev, "check device failed.\n");
 		goto err_init_device;
 	}
-
+#if 0
 	/* configure interrupt */
 	if (gpio_is_valid(ltr->irq_gpio)) {
 		res = gpio_request(ltr->irq_gpio, "ltr329_interrupt");
@@ -1342,20 +1387,30 @@ static int ltr329_probe(struct i2c_client *client,
 					ltr->irq, res);
 			goto err_request_irq;
 		}
-
+		
 		/* device wakeup initialization */
 		device_init_wakeup(&client->dev, 1);
 
 		ltr->workqueue = alloc_workqueue("ltr329_workqueue",
 				WQ_NON_REENTRANT | WQ_FREEZABLE, 0);
 		INIT_WORK(&ltr->report_work, ltr329_report_work);
-		INIT_WORK(&ltr->als_enable_work, ltr329_als_enable_work);
-		INIT_WORK(&ltr->als_disable_work, ltr329_als_disable_work);
+//		INIT_WORK(&ltr->als_enable_work, ltr329_als_enable_work);
+//		INIT_WORK(&ltr->als_disable_work, ltr329_als_disable_work);
 
 	} else {
 		res = -ENODEV;
 		goto err_init_device;
 	}
+#else
+		/* device wakeup initialization */
+		device_init_wakeup(&client->dev, 1);
+
+		ltr->workqueue = alloc_workqueue("ltr329_workqueue",
+				WQ_NON_REENTRANT | WQ_FREEZABLE, 0);
+		INIT_DELAYED_WORK(&ltr->report_work, ltr329_report_work);
+		schedule_delayed_work(&ltr->report_work,
+			msecs_to_jiffies(POLL_INTERVAL));
+#endif
 
 	res = sysfs_create_group(&client->dev.kobj, &ltr329_attr_group);
 	if (res) {
@@ -1368,7 +1423,7 @@ static int ltr329_probe(struct i2c_client *client,
 		dev_err(&client->dev, "init input failed.\n");
 		goto err_init_input;
 	}
-
+#if 0
 	ltr->als_cdev = als_cdev;
 	ltr->als_cdev.sensors_enable = ltr329_cdev_enable_als;
 	ltr->als_cdev.sensors_poll_delay = ltr329_cdev_set_als_delay;
@@ -1381,29 +1436,33 @@ static int ltr329_probe(struct i2c_client *client,
 
 	sensor_power_config(&client->dev, power_config,
 			ARRAY_SIZE(power_config), false);
-
+#endif
 	dev_dbg(&client->dev, "ltr329 successfully probed!\n");
 
 	return 0;
 
-err_register_als_cdev:
-	sensors_classdev_unregister(&ltr->als_cdev);
+//err_register_als_cdev:
+//	sensors_classdev_unregister(&ltr->als_cdev);
 err_init_input:
 	sysfs_remove_group(&client->dev.kobj, &ltr329_attr_group);
 err_create_group:
+#if 0
 err_request_irq:
 err_set_direction:
 	gpio_free(ltr->irq_gpio);
 err_request_gpio:
+#endif
 err_init_device:
 	device_init_wakeup(&client->dev, 0);
 err_check_device:
+#if 0
 err_pinctrl_init:
 	sensor_power_config(&client->dev, power_config,
 			ARRAY_SIZE(power_config), false);
 err_power_config:
 	sensor_power_deinit(&client->dev, power_config,
 			ARRAY_SIZE(power_config));
+#endif
 out:
 	return res;
 }
@@ -1423,10 +1482,12 @@ static int ltr329_remove(struct i2c_client *client)
 
 	destroy_workqueue(ltr->workqueue);
 	device_init_wakeup(&ltr->i2c->dev, 0);
+#if 0
 	sensor_power_config(&client->dev, power_config,
 			ARRAY_SIZE(power_config), false);
 	sensor_power_deinit(&client->dev, power_config,
 			ARRAY_SIZE(power_config));
+#endif
 	return 0;
 }
 
@@ -1434,14 +1495,14 @@ static int ltr329_suspend(struct device *dev)
 {
 	int res = 0;
 	struct ltr329_data *ltr = dev_get_drvdata(dev);
-	u8 ps_data[4];
-	unsigned int config;
-	int idx = ltr->ps_wakeup_threshold;
+//	u8 ps_data[4];
+//	unsigned int config;
+//	int idx = ltr->ps_wakeup_threshold;
 
 	dev_dbg(dev, "suspending ltr329...");
 
 	mutex_lock(&ltr->ops_lock);
-
+#if 0
 		/* power off */
 		disable_irq(ltr->irq);
 		if (ltr->power_enabled) {
@@ -1455,6 +1516,7 @@ static int ltr329_suspend(struct device *dev)
 		}
 		pinctrl_select_state(pin_config.pinctrl, pin_config.state[1]);
 exit:
+#endif
 	mutex_unlock(&ltr->ops_lock);
 	return res;
 }
@@ -1490,6 +1552,7 @@ static int ltr329_resume(struct device *dev)
 			}
 		}
 	} else {
+#if 0
 		pinctrl_select_state(pin_config.pinctrl, pin_config.state[0]);
 		/* Power up sensor */
 		if (ltr->power_enabled) {
@@ -1517,10 +1580,11 @@ static int ltr329_resume(struct device *dev)
 		}
 
 		enable_irq(ltr->irq);
+#endif
 	}
 
 	return res;
-
+#if 0
 exit_power_off:
 	if ((!ltr->als_enabled) && (!ltr->ps_enabled) &&
 			ltr->power_enabled) {
@@ -1531,7 +1595,7 @@ exit_power_off:
 		}
 		ltr->power_enabled = false;
 	}
-
+#endif
 exit:
 	return res;
 }
@@ -1565,5 +1629,5 @@ static struct i2c_driver ltr329_driver = {
 
 module_i2c_driver(ltr329_driver);
 
-MODULE_DESCRIPTION("LTR-553ALPS Driver");
+MODULE_DESCRIPTION("LTR-329ALS Driver");
 MODULE_LICENSE("GPL v2");
