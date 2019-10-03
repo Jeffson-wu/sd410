@@ -899,7 +899,6 @@ static bool wcd_is_special_headset(struct wcd_mbhc *mbhc)
 	pr_debug("%s: special headset, start register writes\n", __func__);
 	result2 = snd_soc_read(codec,
 			MSM8X16_WCD_A_ANALOG_MBHC_ZDET_ELECT_RESULT);
-printk("eztest -------> wcd mbhc special headset 0 result:%d\n",result2);
 	while (result2 & 0x01)  {
 		if (mbhc->hs_detect_work_stop) {
 			pr_debug("%s: stop requested: %d\n", __func__,
@@ -920,19 +919,16 @@ printk("eztest -------> wcd mbhc special headset 0 result:%d\n",result2);
 		result2 = snd_soc_read(codec,
 			MSM8X16_WCD_A_ANALOG_MBHC_ZDET_ELECT_RESULT);
 		if (!(result2 & 0x01)){
-printk("eztest -------> wcd mbhc special headset 1 in:%d msecs\n",(delay * 2));
 			pr_debug("%s: Special headset detected in %d msecs\n",
 					__func__, (delay * 2));
 				}
 		if (delay == SPECIAL_HS_DETECT_TIME_MS) {
-printk("eztest -------> wcd mbhc special headset 2 in 4 sec\n");
 			pr_debug("%s: Spl headset didnt get detect in 4 sec\n",
 					__func__);
 			break;
 		}
 	}
 	if (!(result2 & 0x01)) {
-printk("eztest -------> wcd mbhc special headset with threshold found\n");
 		pr_debug("%s: Headset with threshold found\n",  __func__);
 		mbhc->micbias_enable = true;
 		ret = true;
@@ -1006,7 +1002,6 @@ static void wcd_correct_swch_plug(struct work_struct *work)
 	/* Enable micbias for detection in correct work*/
 	wcd_enable_curr_micbias(mbhc, WCD_MBHC_EN_MB);
 	timeout = jiffies + msecs_to_jiffies(HS_DETECT_PLUG_TIME_MS);
-printk("eztest -------> wcd mbhc correct plug type 0 rc:%d\n",plug_type);
 	while (!time_after(jiffies, timeout)) {
 		if (mbhc->hs_detect_work_stop) {
 			pr_debug("%s: stop requested: %d\n", __func__,
@@ -1153,7 +1148,6 @@ printk("eztest -------> wcd mbhc correct plug type 0 rc:%d\n",plug_type);
 #endif
 
 report:
-printk("eztest -------> wcd mbhc correct plug type 1 rc:%d\n",plug_type);
 	pr_debug("%s: Valid plug found, plug type %d wrk_cmpt %d btn_intr %d\n",
 			__func__, plug_type, wrk_complete,
 			mbhc->btn_press_intr);
@@ -1161,10 +1155,8 @@ printk("eztest -------> wcd mbhc correct plug type 1 rc:%d\n",plug_type);
 	wcd_mbhc_find_plug_and_report(mbhc, plug_type);
 	WCD_MBHC_RSC_UNLOCK(mbhc);
 enable_supply:
-printk("eztest -------> wcd mbhc correct plug type 2 rc:%d\n",plug_type);
 	wcd_enable_mbhc_supply(mbhc, plug_type);
 exit:
-printk("eztest -------> wcd mbhc correct plug type 3 rc:%d\n",plug_type);
 	micbias1 = (snd_soc_read(codec, MSM8X16_WCD_A_ANALOG_MICB_1_EN) & 0x80);
 	micbias2 = (snd_soc_read(codec, MSM8X16_WCD_A_ANALOG_MICB_2_EN) & 0x80);
 	if (mbhc->mbhc_cb && mbhc->mbhc_cb->set_cap_mode)
@@ -1205,7 +1197,6 @@ static void wcd_mbhc_detect_plug_type(struct wcd_mbhc *mbhc)
 	result1 = snd_soc_read(codec, MSM8X16_WCD_A_ANALOG_MBHC_BTN_RESULT);
 	result2 = snd_soc_read(codec,
 			MSM8X16_WCD_A_ANALOG_MBHC_ZDET_ELECT_RESULT);
-printk("eztest -------> wcd mbhc plug type 0 \n");
 
 	if (!timeout_result) {
 		pr_debug("%s No btn press interrupt\n", __func__);
@@ -1257,7 +1248,6 @@ printk("eztest -------> wcd mbhc plug type 0 \n");
 		}
 	}
 exit:
-printk("eztest -------> wcd mbhc plug type 1 rc:%d\n",plug_type);
 	pr_debug("%s: Valid plug found, plug type is %d\n",
 			 __func__, plug_type);
 	if (plug_type == MBHC_PLUG_TYPE_HEADSET ||
@@ -1327,7 +1317,6 @@ static void wcd_mbhc_swch_irq_handler(struct wcd_mbhc *mbhc)
 		if (mbhc->mbhc_cb && mbhc->mbhc_cb->enable_mb_source)
 			mbhc->mbhc_cb->enable_mb_source(codec, true);
 		mbhc->btn_press_intr = false;
-printk("eztest -------> wcd mbhc swch irq handle 1\n");
 		wcd_mbhc_detect_plug_type(mbhc);
 	} else if ((mbhc->current_plug != MBHC_PLUG_TYPE_NONE)
 			&& !detection_type) {
@@ -1527,7 +1516,6 @@ determine_plug:
 	 */
 	msleep(20);
 	mbhc->btn_press_intr = false;
-printk("eztest -------> wcd mbhc hs_ins_irq 1\n");
 	wcd_mbhc_detect_plug_type(mbhc);
 	WCD_MBHC_RSC_UNLOCK(mbhc);
 	pr_debug("%s: leave\n", __func__);
@@ -1985,7 +1973,6 @@ static void wcd_mbhc_fw_read(struct work_struct *work)
 
 	}
 
-printk("eztest -------> wcd mbhc read fw 0 fw:%p cal:%p ret:%d\n",mbhc->mbhc_fw, mbhc->mbhc_cal, ret);
 	(void) wcd_mbhc_initialise(mbhc);
 }
 
@@ -1998,12 +1985,10 @@ int wcd_mbhc_start(struct wcd_mbhc *mbhc,
 	/* update the mbhc config */
 	mbhc->mbhc_cfg = mbhc_cfg;
 
-printk("eztest -------> wcd mbhc start 0 rc:%d\n",rc);
 	if (!mbhc->mbhc_cfg->read_fw_bin ||
 	    (mbhc->mbhc_cfg->read_fw_bin && mbhc->mbhc_fw) ||
 	    (mbhc->mbhc_cfg->read_fw_bin && mbhc->mbhc_cal)) {
 		rc = wcd_mbhc_initialise(mbhc);
-printk("eztest -------> wcd mbhc start 0.1 rc:%d\n",rc);
 	} else {
 		if (!mbhc->mbhc_fw || !mbhc->mbhc_cal)
 			schedule_delayed_work(&mbhc->mbhc_firmware_dwork,
@@ -2011,9 +1996,7 @@ printk("eztest -------> wcd mbhc start 0.1 rc:%d\n",rc);
 		else
 			pr_err("%s: Skipping to read mbhc fw, 0x%p %p\n",
 				 __func__, mbhc->mbhc_fw, mbhc->mbhc_cal);
-printk("eztest -------> wcd mbhc start 0.2 fw:%p cal:%p rc:%d\n",mbhc->mbhc_fw, mbhc->mbhc_cal, rc);
 	}
-printk("eztest -------> wcd mbhc start 1 rc:%d\n",rc);
 	pr_debug("%s: leave %d\n", __func__, rc);
 	return rc;
 }

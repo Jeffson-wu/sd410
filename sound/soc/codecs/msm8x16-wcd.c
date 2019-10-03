@@ -2882,7 +2882,7 @@ static int msm8x16_wcd_codec_enable_rx_bias(struct snd_soc_dapm_widget *w,
 	struct msm8x16_wcd_priv *msm8x16_wcd = snd_soc_codec_get_drvdata(codec);
 
 	dev_dbg(codec->dev, "%s %d\n", __func__, event);
-
+//printk("eztest DAC gian:%d\n",event);
 	switch (event) {
 	case SND_SOC_DAPM_PRE_PMU:
 		msm8x16_wcd->rx_bias_count++;
@@ -2890,9 +2890,11 @@ static int msm8x16_wcd_codec_enable_rx_bias(struct snd_soc_dapm_widget *w,
 			snd_soc_update_bits(codec,
 					MSM8X16_WCD_A_ANALOG_RX_COM_BIAS_DAC,
 					0x80, 0x80);
+//					0x84, 0x84);
 			snd_soc_update_bits(codec,
 					MSM8X16_WCD_A_ANALOG_RX_COM_BIAS_DAC,
 					0x01, 0x01);
+//					0x05, 0x05);
 		}
 		break;
 	case SND_SOC_DAPM_POST_PMD:

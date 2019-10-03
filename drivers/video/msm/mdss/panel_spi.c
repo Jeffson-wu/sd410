@@ -52,6 +52,11 @@
 #define PANEL1_OFF	0x06 // mclkpol 1:0x06 0:0x04
 #define PANEL2_OFF	0x0a // mclkpol 1:0x0a 0:0x08
 
+#define REG_BRT			0x25
+#define REG_RBRT		0x26
+#define REG_GBRT		0x27
+#define REG_BBRT		0x28
+#define REG_LUM			0x2a
 
 struct panel_spi_data {
 	unsigned addr;
@@ -698,6 +703,29 @@ void panel_spi_gpio_init(void)
 	ret = gpio_direction_input(SPI_MISO);
 	hud_gpio_init = 1;
 	mdelay(5);
+}
+
+void panel_set_brightness(int value)
+{
+	unsigned int val;
+	if(value > 255) val = 255;
+	else val = value;
+	SPI_CS = SPI_CS_N1;
+	panel_spi_out(0x80, 0);
+	mdelay(1);	
+	panel_spi_out(REG_LUM, val);
+	panel_spi_out(REG_BRT, val);
+	mdelay(1);
+	printk("HUD1 rd LUM:%d\n",panel_spi_in(REG_LUM));
+	printk("HUD1 rd LUM:%d\n",panel_spi_in(REG_BRT));
+	SPI_CS = SPI_CS_N2;
+	panel_spi_out(0x80, 0);
+	mdelay(1);	
+	panel_spi_out(REG_LUM, val);
+	panel_spi_out(REG_BRT, val);
+	mdelay(1);	
+	printk("HUD2 rd LUM:%d\n",panel_spi_in(REG_LUM));
+	printk("HUD2 rd LUM:%d\n",panel_spi_in(REG_BRT));
 }
 
 void panel_hud_disp_on(void)

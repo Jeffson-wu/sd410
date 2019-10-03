@@ -106,6 +106,9 @@ static int mdss_fb_send_panel_event(struct msm_fb_data_type *mfd,
 static void mdss_fb_set_mdp_sync_pt_threshold(struct msm_fb_data_type *mfd);
 static void mdss_panelinfo_to_fb_var(struct mdss_panel_info *pinfo,
 					struct fb_var_screeninfo *var);
+
+extern void panel_set_brightness(int value);
+
 void mdss_fb_no_update_notify_timer_cb(unsigned long data)
 {
 	struct msm_fb_data_type *mfd = (struct msm_fb_data_type *)data;
@@ -256,6 +259,7 @@ static void mdss_fb_set_bl_brightness(struct led_classdev *led_cdev,
 							!mfd->bl_level)) {
 		mutex_lock(&mfd->bl_lock);
 		mdss_fb_set_backlight(mfd, bl_lvl);
+		panel_set_brightness(bl_lvl);
 		mutex_unlock(&mfd->bl_lock);
 	}
 }
