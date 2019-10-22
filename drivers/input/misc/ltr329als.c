@@ -53,7 +53,7 @@
 #define LTR329_PART_ID			0xA0
 
 #define LTR329_ALS_SENSITIVITY		70
-#define LTR329_PS_LUX				70
+#define LTR329_PS_LUX				1
 
 #define LTR329_BOOT_TIME_MS		120
 #define LTR329_WAKE_TIME_MS		10
@@ -68,7 +68,7 @@
 
 /* default measurement rate is 100 ms */
 #define LTR329_ALS_DEFAULT_MEASURE_RATE	0x01
-//#define LTR329_ALS_DEFAULT_ALS_GAIN	0x07
+#define LTR329_ALS_DEFAULT_ALS_GAIN	0
 #define LTR329_PS_MEASUREMENT_RATE_10MS	0x08
 
 #define LTR329_CALIBRATE_SAMPLES	15
@@ -562,7 +562,7 @@ static int ltr329_init_device(struct ltr329_data *ltr)
 	unsigned int tmp;
 
 	rc = regmap_write(ltr->regmap, LTR329_REG_ALS_CTL,
-			0x02);
+			0x02 | (LTR329_ALS_DEFAULT_ALS_GAIN << 2));
 	msleep(LTR329_BOOT_TIME_MS);
 #if 0	
 	rc = regmap_write(ltr->regmap, LTR329_REG_ALS_MEAS_RATE,
@@ -581,7 +581,7 @@ static int ltr329_init_device(struct ltr329_data *ltr)
 		return rc;
 	}
 	rc = regmap_write(ltr->regmap, LTR329_REG_ALS_CTL,
-			(tmp | 0x1));
+			(tmp | 0x1 | (LTR329_ALS_DEFAULT_ALS_GAIN << 2)));
 	if (rc) {
 		dev_err(&ltr->i2c->dev, "write %d register failed\n",
 				LTR329_REG_ALS_CTL);
@@ -814,6 +814,10 @@ static int ltr329_process_data(struct ltr329_data *ltr, int als_ps)
 		als_int_fac = als_int_fac_table[tmp];
 		lux = ltr329_calc_lux(ch0data, ch1data,
 				als_gain_table[ltr->als_gain], als_int_fac);
+//		printk("eztest ltr329 tmp:%x gain:%d fac:%d\n",tmp,als_gain_table[ltr->als_gain],als_int_fac);
+//		printk("eztest ltr329 lux:%d als_data:0x%x-0x%x-0x%x-0x%x\n",
+//				lux, als_data[0], als_data[1],
+//				als_data[2], als_data[3]);
 
 		dev_dbg(&ltr->i2c->dev, "lux:%d als_data:0x%x-0x%x-0x%x-0x%x\n",
 				lux, als_data[0], als_data[1],
@@ -834,13 +838,15 @@ static int ltr329_process_data(struct ltr329_data *ltr, int als_ps)
 			input_event(ltr->input_light, EV_SYN, SYN_TIME_NSEC,
 					ktime_to_timespec(timestamp).tv_nsec);
 			#else
-			if((lux < LTR329_PS_LUX) && (ltr->last_als > LTR329_PS_LUX)){
+			#if 0
+			if((lux < LTR329_PS_LUX) && (ltr->last_als >= LTR329_PS_LUX)){
 				input_event(ltr->input_light, EV_KEY, KEY_SLEEP, 1);
 				input_event(ltr->input_light, EV_KEY, KEY_SLEEP, 0);
-			}else if((lux > LTR329_PS_LUX) && (ltr->last_als < LTR329_PS_LUX)){
+			}else if((lux >= LTR329_PS_LUX) && (ltr->last_als < LTR329_PS_LUX)){
 				input_event(ltr->input_light, EV_KEY, KEY_WAKEUP, 1);
 				input_event(ltr->input_light, EV_KEY, KEY_WAKEUP, 0);
 			}
+			#endif
 			#endif
 			input_sync(ltr->input_light);
 
@@ -1349,7 +1355,7 @@ static int ltr329_probe(struct i2c_client *client,
 
 	ltr->als_measure_rate = LTR329_ALS_DEFAULT_MEASURE_RATE;
 
-//	ltr->als_gain = LTR329_ALS_DEFAULT_ALS_GAIN;
+	ltr->als_gain = LTR329_ALS_DEFAULT_ALS_GAIN;
 	res = ltr329_init_device(ltr);
 	if (res) {
 		dev_err(&client->dev, "check device failed.\n");
@@ -1544,7 +1550,7 @@ static int ltr329_resume(struct device *dev)
 			}
 
 			res = regmap_write(ltr->regmap, LTR329_REG_ALS_CTL,
-					config | 0x1);
+					config | 0x1 | (LTR329_ALS_DEFAULT_ALS_GAIN << 2));
 			if (res) {
 				dev_err(&ltr->i2c->dev, "write %d failed.(%d)\n",
 						LTR329_REG_ALS_CTL, res);
