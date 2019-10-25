@@ -52,6 +52,7 @@
 #define PANEL1_OFF	0x06 // mclkpol 1:0x06 0:0x04
 #define PANEL2_OFF	0x0a // mclkpol 1:0x0a 0:0x08
 
+#define REG_BRTLUM_DIS	0x08
 #define REG_BRT			0x25
 #define REG_RBRT		0x26
 #define REG_GBRT		0x27
@@ -73,7 +74,7 @@ static struct panel_spi_data init_sequence[] = {
 	{0x05, 0xC8},
 	{0x06, 0x00},
 	{0x07, 0x40},
-	{0x08, 0x00},
+	{0x08, 0x00},// invalid preset lum:4 brt:1 
 	{0x09, 0x00},
 	{0x0A, 0x10},
 	{0x0B, 0x00},
@@ -713,16 +714,18 @@ void panel_set_brightness(int value)
 	SPI_CS = SPI_CS_N1;
 	panel_spi_out(0x80, 0);
 	mdelay(1);	
+	panel_spi_out(REG_BRTLUM_DIS, 4);
 	panel_spi_out(REG_LUM, val);
-	panel_spi_out(REG_BRT, val);
+//	panel_spi_out(REG_BRT, val);
 	mdelay(1);
 	printk("HUD1 rd LUM:%d\n",panel_spi_in(REG_LUM));
 	printk("HUD1 rd LUM:%d\n",panel_spi_in(REG_BRT));
 	SPI_CS = SPI_CS_N2;
 	panel_spi_out(0x80, 0);
 	mdelay(1);	
+	panel_spi_out(REG_BRTLUM_DIS, 4);
 	panel_spi_out(REG_LUM, val);
-	panel_spi_out(REG_BRT, val);
+//	panel_spi_out(REG_BRT, val);
 	mdelay(1);	
 	printk("HUD2 rd LUM:%d\n",panel_spi_in(REG_LUM));
 	printk("HUD2 rd LUM:%d\n",panel_spi_in(REG_BRT));

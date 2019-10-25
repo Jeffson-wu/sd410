@@ -823,7 +823,7 @@ static int mdss_dsi_off(struct mdss_panel_data *pdata, int power_state)
 
 	panel_info = &ctrl_pdata->panel_data.panel_info;
 
-printk("eztest mdss_dsi off---------->ps:%d panel_ps:%d\n",power_state,panel_info->panel_power_state);
+//printk("eztest mdss_dsi off---------->ps:%d panel_ps:%d\n",power_state,panel_info->panel_power_state);
 	pr_debug("%s+: ctrl=%p ndx=%d power_state=%d\n",
 		__func__, ctrl_pdata, ctrl_pdata->ndx, power_state);
 
@@ -1682,7 +1682,7 @@ static int mdss_dsi_event_handler(struct mdss_panel_data *pdata,
 	pr_debug("%s+: ctrl=%d event=%d\n", __func__, ctrl_pdata->ndx, event);
 
 	MDSS_XLOG(event, arg, ctrl_pdata->ndx, 0x3333);
-printk("eztest mdss_dsi---------->evt:%d lnk ste:%d ctrl ste:%d rfh:%d\n",event,ctrl_pdata->on_cmds.link_state,ctrl_pdata->ctrl_state,ctrl_pdata->refresh_clk_rate);
+//printk("eztest mdss_dsi---------->evt:%d lnk ste:%d ctrl ste:%d rfh:%d\n",event,ctrl_pdata->on_cmds.link_state,ctrl_pdata->ctrl_state,ctrl_pdata->refresh_clk_rate);
 	switch (event) {
 	case MDSS_EVENT_CHECK_PARAMS:
 		pr_debug("%s:Entered Case MDSS_EVENT_CHECK_PARAMS\n", __func__);

@@ -83,7 +83,7 @@ static int hm_gpio_led_blink_set(unsigned gpio, int state,
 }
 EXPORT_SYMBOL_GPL(hm_gpio_led_blink_set);
 
-#if 1 // enzo debug usb reboot
+#if 0 // enzo debug usb reboot
 static void gpio_led_work(struct work_struct *work)
 {
 	struct gpio_led_data	*led_dat;
@@ -182,11 +182,11 @@ static int create_gpio_led(const struct gpio_led *template,
 	ret = gpio_direction_output(led_dat->gpio, led_dat->active_low ^ state);
 	if (ret < 0)
 		return ret;
-// enzo debug usb reboot
+#if 0// enzo debug usb reboot
 	INIT_WORK(&led_dat->led_work, gpio_led_work);
 	msleep(100);
 	schedule_work(&led_dat->led_work);
-
+#endif
 	ret = led_classdev_register(parent, &led_dat->cdev);
 	if (ret < 0)
 		return ret;
