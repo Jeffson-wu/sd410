@@ -47,8 +47,8 @@
 #define SPI_MISO	PANEL_GPIO_BASE + 17
 
 #define GPIO26_GPIO_CNTRL 0x169	/* backlight */
-#define PANEL1_ON	0x05 // mclkpol 1:0x07 0:0x05
-#define PANEL2_ON	0x09 // mclkpol 1:0x0b 0:0x09
+#define PANEL1_ON	0x09 // mclkpol 1:0x07 0:0x05
+#define PANEL2_ON	0x05 // mclkpol 1:0x0b 0:0x09
 #define PANEL1_OFF	0x06 // mclkpol 1:0x06 0:0x04
 #define PANEL2_OFF	0x0a // mclkpol 1:0x0a 0:0x08
 
