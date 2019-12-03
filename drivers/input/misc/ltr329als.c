@@ -53,7 +53,7 @@
 #define LTR329_PART_ID			0xA0
 
 #define LTR329_ALS_SENSITIVITY		70
-#define LTR329_PS_LUX				1
+#define LTR329_PS_LUX				5
 
 #define LTR329_BOOT_TIME_MS		120
 #define LTR329_WAKE_TIME_MS		10
@@ -67,7 +67,8 @@
 #define LTR329_ALS_GAIN_MASK		0x1c
 
 /* default measurement rate is 100 ms */
-#define LTR329_ALS_DEFAULT_MEASURE_RATE	0x01
+#define LTR329_ALS_DEFAULT_MEASURE_RATE 3
+#define LTR329_ALS_DEFAULT_INTEGGRATION_TIME 3
 #define LTR329_ALS_DEFAULT_ALS_GAIN	0
 #define LTR329_PS_MEASUREMENT_RATE_10MS	0x08
 
@@ -98,7 +99,7 @@
 
 #define CAL_BUF_LEN			16
 
-#define POLL_INTERVAL		500
+#define POLL_INTERVAL		1000
 
 enum {
 	CMD_WRITE = 0,
@@ -564,7 +565,7 @@ static int ltr329_init_device(struct ltr329_data *ltr)
 	rc = regmap_write(ltr->regmap, LTR329_REG_ALS_CTL,
 			0x02 | (LTR329_ALS_DEFAULT_ALS_GAIN << 2));
 	msleep(LTR329_BOOT_TIME_MS);
-#if 0	
+#if 1
 	rc = regmap_write(ltr->regmap, LTR329_REG_ALS_MEAS_RATE,
 		(ltr->als_integration_time << 3) | (ltr->als_measure_rate));
 	if (rc) {
@@ -816,8 +817,7 @@ static int ltr329_process_data(struct ltr329_data *ltr, int als_ps)
 				als_gain_table[ltr->als_gain], als_int_fac);
 //		printk("eztest ltr329 tmp:%x gain:%d fac:%d\n",tmp,als_gain_table[ltr->als_gain],als_int_fac);
 //		printk("eztest ltr329 lux:%d als_data:0x%x-0x%x-0x%x-0x%x\n",
-//				lux, als_data[0], als_data[1],
-//				als_data[2], als_data[3]);
+//				lux, als_data[0], als_data[1],als_data[2], als_data[3]);
 
 		dev_dbg(&ltr->i2c->dev, "lux:%d als_data:0x%x-0x%x-0x%x-0x%x\n",
 				lux, als_data[0], als_data[1],
@@ -838,7 +838,7 @@ static int ltr329_process_data(struct ltr329_data *ltr, int als_ps)
 			input_event(ltr->input_light, EV_SYN, SYN_TIME_NSEC,
 					ktime_to_timespec(timestamp).tv_nsec);
 			#else
-			#if 0
+				#if 0
 			if((lux < LTR329_PS_LUX) && (ltr->last_als >= LTR329_PS_LUX)){
 				input_event(ltr->input_light, EV_KEY, KEY_SLEEP, 1);
 				input_event(ltr->input_light, EV_KEY, KEY_SLEEP, 0);
@@ -846,7 +846,7 @@ static int ltr329_process_data(struct ltr329_data *ltr, int als_ps)
 				input_event(ltr->input_light, EV_KEY, KEY_WAKEUP, 1);
 				input_event(ltr->input_light, EV_KEY, KEY_WAKEUP, 0);
 			}
-			#endif
+				#endif
 			#endif
 			input_sync(ltr->input_light);
 
@@ -1354,7 +1354,7 @@ static int ltr329_probe(struct i2c_client *client,
 	}
 
 	ltr->als_measure_rate = LTR329_ALS_DEFAULT_MEASURE_RATE;
-
+	ltr->als_integration_time = LTR329_ALS_DEFAULT_INTEGGRATION_TIME;
 	ltr->als_gain = LTR329_ALS_DEFAULT_ALS_GAIN;
 	res = ltr329_init_device(ltr);
 	if (res) {

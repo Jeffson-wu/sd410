@@ -635,7 +635,6 @@ printk("eztest 8974 1 **********h period:%d v period:%d panel clk:%d************
 
 	if (pll_divider_config.clk_rate == 0)
 		pll_divider_config.clk_rate = 454000000;
-#if 1
 	rate = (pll_divider_config.clk_rate / 2)
 			 / 1000000; /* Half Bit Clock In Mhz */
 
@@ -663,34 +662,6 @@ printk("eztest 8974 ******pll clk:%d rate:%d**********\n",pll_divider_config.clk
 		div_ratio = 1;
 		pll_analog_posDiv = 1;
 	}
-#else
-	rate = pll_divider_config.clk_rate / 1000000; /* Bit Clock In Mhz */
-
-printk("eztest 8974 ******pll clk:%d rate:%d**********\n",pll_divider_config.clk_rate,rate);
-
-	if (rate < 86) {
-		vco = rate * 32;
-		div_ratio = 16;
-		pll_analog_posDiv = 8;
-	} else if (rate < 170) {
-		vco = rate * 16;
-		div_ratio = 8;
-		pll_analog_posDiv = 4;
-	} else if (rate < 340) {
-		vco = rate * 8;
-		div_ratio = 4;
-		pll_analog_posDiv = 2;
-	} else if (rate < 680) {
-		vco = rate * 4;
-		div_ratio = 2;
-		pll_analog_posDiv = 1;
-	} else {
-		/* DSI PLL Direct path configuration */
-		vco = rate * 2;
-		div_ratio = 1;
-		pll_analog_posDiv = 1;
-	}
-#endif
 
 	/* find the mnd settings from mnd_table entry */
 	for (; mnd_entry < mnd_table + ARRAY_SIZE(mnd_table); ++mnd_entry) {

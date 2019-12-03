@@ -37,6 +37,10 @@
 #define MIN_REFRESH_RATE 48
 #define MONITOR_INTERVAL		5000
 #define MONITOR_ENABLE		0
+/*		qcom,mdss-dsi-panel-timings = [4C 0A 02 00 20 24 06 0C 02 03 04 00];
+		qcom,mdss-dsi-panel-timings = [3C 0E 06 00 26 2A 0A 10 06 03 04 00]; */ 
+//static unsigned int dsi_panel_timings[] = {0x4C,0x0A,0x02,0x00,0x20,0x24,0x06,0x0C,0x02,0x03,0x04,0x00}; //org
+//static unsigned int dsi_panel_timings[] = {0x3C,0x0E,0x06,0x00,0x26,0x2A,0x0A,0x10,0x06,0x03,0x04,0x00}; //caculate
 
 extern void panel_hud_disp_on(void);
 extern void panel_hud_disp_off(void);
@@ -1428,12 +1432,17 @@ static int mdss_panel_parse_dt(struct device_node *np,
 	pinfo->yres = 360;
 #endif
 	printk("eztest-----------> dsi panel w:%d h:%d\n", pinfo->xres, pinfo->yres);
+#if 0
 	rc = of_property_read_u32(np,
 		"qcom,mdss-pan-physical-width-dimension", &tmp);
 	pinfo->physical_width = (!rc ? tmp : 0);
 	rc = of_property_read_u32(np,
 		"qcom,mdss-pan-physical-height-dimension", &tmp);
 	pinfo->physical_height = (!rc ? tmp : 0);
+#else
+	pinfo->physical_width = 6;
+	pinfo->physical_height = 4;
+#endif
 	printk("eztest-----------> dsi panel pw:%d ph:%d\n", pinfo->physical_width, pinfo->physical_height);
 	rc = of_property_read_u32(np, "qcom,mdss-dsi-h-left-border", &tmp);
 	pinfo->lcdc.xres_pad = (!rc ? tmp : 0);
@@ -1519,14 +1528,24 @@ static int mdss_panel_parse_dt(struct device_node *np,
 	rc = of_property_read_u32(np, "qcom,mdss-dsi-v-pulse-width", &tmp);
 	pinfo->lcdc.v_pulse_width = (!rc ? tmp : 2);
 #else
- #if 1// setting 8
-	pinfo->lcdc.h_front_porch = 100;// org 102 std 96 tm 96
-	pinfo->lcdc.h_back_porch = 60;// org 60 std 58 tm 60
-	pinfo->lcdc.h_pulse_width = 64;// org 66 std 64 tm 64
-	pinfo->lcdc.hsync_skew = 4;
+ #if 1 // setting 8
+ #if 0
+	pinfo->lcdc.h_front_porch = 102;
+	pinfo->lcdc.h_back_porch = 60;
+	pinfo->lcdc.h_pulse_width = 66;
+	pinfo->lcdc.hsync_skew = 0;
 	pinfo->lcdc.v_back_porch = 32;
 	pinfo->lcdc.v_front_porch = 127;
 	pinfo->lcdc.v_pulse_width = 6;
+ #else // for test setting 34
+	pinfo->lcdc.h_front_porch = 97;// org 102 std 96 tm 96 last 100 set32 106 1127 97
+	pinfo->lcdc.h_back_porch = 59;// org 60 std 58 tm 60 last 60 set32 59 1127 59
+	pinfo->lcdc.h_pulse_width = 64;// org 66 std 64 tm 64 last 64 set32 65 1127 64
+	pinfo->lcdc.hsync_skew = 2; // last 4 best 7-10 1127 2
+	pinfo->lcdc.v_back_porch = 32;
+	pinfo->lcdc.v_front_porch = 127;
+	pinfo->lcdc.v_pulse_width = 6;
+ #endif
  #else // setting 22
 	pinfo->lcdc.h_front_porch = 102;
 	pinfo->lcdc.h_back_porch = 60;
@@ -1542,7 +1561,7 @@ static int mdss_panel_parse_dt(struct device_node *np,
 	rc = of_property_read_u32(np,
 		"qcom,mdss-dsi-underflow-color", &tmp);
 	pinfo->lcdc.underflow_clr = (!rc ? tmp : 0xff);
-//	pinfo->lcdc.underflow_clr = 0;
+//	pinfo->lcdc.underflow_clr = 0x30;
 	rc = of_property_read_u32(np,
 		"qcom,mdss-dsi-border-color", &tmp);
 	pinfo->lcdc.border_clr = (!rc ? tmp : 0);
@@ -1756,10 +1775,11 @@ static int mdss_panel_parse_dt(struct device_node *np,
 	pinfo->mipi.frame_rate = 60;// best one 65
 	printk("eztest---------------> dsi panel frame rate set:%d mode gpio:%d\n", pinfo->mipi.frame_rate,pinfo->mode_gpio_state);
 //	rc = of_property_read_u32(np, "qcom,mdss-dsi-panel-clockrate", &tmp);
-	pinfo->clk_rate = 0;//(!rc ? tmp : 0);// setting 22
-//	pinfo->clk_rate = 162162000;// test 172104000 172100000 172101000 172102000 172103000 172099000 172098000 172097000 172096000 172092000
-//	pinfo->clk_rate = 180000000;// best one 177723072 177723080 177723088 180000080 180000064
+//	pinfo->clk_rate = 0;//(!rc ? tmp : 0);// setting 22 caculate:163296000 27.41: 164460000 164430000 162180000 1128: 162162000 162164800 162165200
+	pinfo->clk_rate = 162165200;// test 172104000 172100000 172101000 172102000 172103000 172099000 172098000 172097000 172096000 172092000
+//	pinfo->clk_rate = 180000000;// best one 177723072 177723080 177723088 180000080 180000064 last 180000000
 	printk("eztest---------------> dsi panel clock rate:%d\n",pinfo->clk_rate);
+#if 1
 	data = of_get_property(np, "qcom,mdss-dsi-panel-timings", &len);
 	if ((!data) || (len != 12)) {
 		pr_err("%s:%d, Unable to read Phy timing settings",
@@ -1768,7 +1788,10 @@ static int mdss_panel_parse_dt(struct device_node *np,
 	}
 	for (i = 0; i < len; i++)
 		pinfo->mipi.dsi_phy_db.timing[i] = data[i];
-//		pinfo->mipi.dsi_phy_db.timing[i] = 0;
+#else
+	for (i = 0; i < len; i++)
+		pinfo->mipi.dsi_phy_db.timing[i] = dsi_panel_timings[i];
+#endif
 
 //	pinfo->mipi.lp11_init = of_property_read_bool(np,
 //					"qcom,mdss-dsi-lp11-init");
