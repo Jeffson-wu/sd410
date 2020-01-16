@@ -1031,7 +1031,8 @@ static void bq27x00_update(struct bq27x00_device_info *di)
 				cache.capacity = cal_soc * 120/100;
 				cap_pre = cache.capacity;
 			}else{
-				cache.capacity = cap_pre;
+				if(cap_pre) cache.capacity = cap_pre;
+				else cache.capacity = cal_soc;
 				if(cg_cnt == -1) cg_cnt = 2;
 				else if(cg_cnt == 0) cache.capacity = cal_soc;
 				else cg_cnt--;
