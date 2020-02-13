@@ -58,7 +58,7 @@
 #define REG_GBRT		0x27
 #define REG_BBRT		0x28
 #define REG_LUM			0x2a
-#define MAX_LUM			200 //org default 255
+#define MAX_LUM			255 //org default 255
 
 struct panel_spi_data {
 	unsigned addr;

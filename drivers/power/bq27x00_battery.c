@@ -265,6 +265,10 @@ static __initdata u8 bq276xx_regs[NUM_REGS] = {
 #define BQ276XX_OP_CFG_B_OFFSET		2
 #define BQ276XX_OP_CFG_B_DEF_SEAL_BIT	(1 << 5)
 
+#define SOC_1	34
+#define SOC_0	30
+#define VOT_MIN	3100
+
 struct bq27x00_device_info;
 struct bq27x00_access_methods {
 	int (*read)(struct bq27x00_device_info *di, u8 reg, bool single);
@@ -460,16 +464,20 @@ static struct dm_reg bq274xx_dm_regs[] = {
 
 static struct dm_reg bq276xx_dm_regs[] = {
 	{64, 2, 1, 0x2C},	/* Op Config B */
-	{82, 0, 2, 4000},	/* Qmax */
+	{82, 0, 2, 4300},	/* Qmax org 1000*/
 	{82, 2, 1, 0x81},	/* Load Select */
 	{82, 3, 2, 4300},	/* Design Capacity org 1340*/
 	{82, 5, 2, 16340},	/* Design Energy org 3700*/
 	{82, 9, 2, 3250},	/* Terminate Voltage org 3250*/
-	{82, 20, 2, 110},	/* Taper rate org 110*/
+	{82, 20, 2, 85},	/* Taper rate org 110*/
+	{82, 22, 2, 4300},	/* Taper voltage org 4100*/
 };
 
 int cg_cnt = -1;
 int cap_pre = 0;
+int volt_pre = 0;
+int div_0 = 0;
+int soc_tmp = 0;
 static unsigned int poll_interval = 360;
 module_param(poll_interval, uint, 0644);
 MODULE_PARM_DESC(poll_interval, "battery poll interval in seconds - " \
@@ -1006,7 +1014,7 @@ static int bq27x00_battery_read_health(struct bq27x00_device_info *di)
 
 static void bq27x00_update(struct bq27x00_device_info *di)
 {
-	int cal_soc;
+	int cal_soc, volt;
 	struct bq27x00_reg_cache cache = {0, };
 	bool is_bq27200 = di->chip == BQ27200;
 	bool is_bq27500 = di->chip == BQ27500;
@@ -1014,6 +1022,7 @@ static void bq27x00_update(struct bq27x00_device_info *di)
 	bool is_bq276xx = di->chip == BQ276XX;
 
 	cache.flags = bq27xxx_read(di, BQ27XXX_REG_FLAGS, !is_bq27500);
+	printk("bq27621 update flag:%x is bq27100:%d\n",cache.flags,is_bq27200);
 	if (cache.flags >= 0) {
 		if (is_bq27200 && (cache.flags & BQ27200_FLAG_CI)) {
 			dev_info(di->dev, "battery is not calibrated! ignoring capacity values\n");
@@ -1026,18 +1035,40 @@ static void bq27x00_update(struct bq27x00_device_info *di)
 			cache.health = -ENODATA;
 		} else {
 			cal_soc = bq27x00_battery_read_soc(di);
-			if(cache.flags & 0x1){
+			volt = bq27xxx_read(di, BQ27XXX_REG_VOLT, false);
+			cache.power_avg = bq27x00_battery_read_pwr_avg(di, BQ27XXX_POWER_AVG);
+	printk("bq27621 update ***cap:%d cal:%d*** volt:%d voltp:%d avgp:%d hel:%d\n",cap_pre,cal_soc,volt,volt_pre,cache.power_avg,cache.health);
+			if(cal_soc > 1){
+				cal_soc = 100 - ((100 - cal_soc)*100/150);
 				cg_cnt = -1;
-				cache.capacity = cal_soc * 120/100;
-				cap_pre = cache.capacity;
-			}else{
-				if(cap_pre) cache.capacity = cap_pre;
-				else cache.capacity = cal_soc;
-				if(cg_cnt == -1) cg_cnt = 2;
-				else if(cg_cnt == 0) cache.capacity = cal_soc;
-				else cg_cnt--;
+			}else if(cal_soc > 0){
+				if(soc_tmp == 0) soc_tmp = SOC_1;
+				else if(volt < volt_pre){
+					if(soc_tmp > SOC_0) soc_tmp--;
+				}else if((volt > (volt_pre + 10)) && !(cache.flags & 0x1)){
+					if(soc_tmp < SOC_1) soc_tmp++;
+				}
+				cal_soc = soc_tmp;
+				cg_cnt = -1;
+			}else if(volt > (VOT_MIN + SOC_0)){
+				if(cg_cnt == -1){
+					div_0 = (volt - VOT_MIN)/SOC_0;
+					cg_cnt = 0;
+				}
+				cal_soc = (volt - VOT_MIN)/div_0;
+				soc_tmp = cal_soc;
 			}
-			cache.capacity = (cache.capacity < 100) ? cache.capacity : 100;
+			if((cache.flags & 0x1) && (cache.power_avg > 65000)){
+				printk("----->discharge verify true\n");
+				if((cap_pre) && (cal_soc > cap_pre))
+					cache.capacity = cap_pre;
+				else
+					cache.capacity = cal_soc;
+			}else{
+				cache.capacity = cal_soc;
+			}
+			cap_pre = cache.capacity;
+			volt_pre = volt;
 			if (!(is_bq274xx || is_bq276xx)) {
 				cache.energy = bq27x00_battery_read_energy(di);
 				cache.time_to_empty =
@@ -1049,6 +1080,9 @@ static void bq27x00_update(struct bq27x00_device_info *di)
 				cache.time_to_full =
 					bq27x00_battery_read_time(di,
 							BQ27XXX_REG_TTF);
+			}else{
+//				cache.time_to_empty = volt / 100;
+//				cache.time_to_full = volt / 200;
 			}
 			cache.charge_full = bq27x00_battery_read_fcc(di);
 			cache.health = bq27x00_battery_read_health(di);
@@ -1056,9 +1090,6 @@ static void bq27x00_update(struct bq27x00_device_info *di)
 		cache.temperature = bq27x00_battery_read_temperature(di);
 		if (!is_bq274xx)
 			cache.cycle_count = bq27x00_battery_read_cyct(di);
-		cache.power_avg =
-			bq27x00_battery_read_pwr_avg(di, BQ27XXX_POWER_AVG);
-
 		/* We only have to read charge design full once */
 		if (di->charge_design_full <= 0)
 			di->charge_design_full = bq27x00_battery_read_dcap(di);
@@ -1108,7 +1139,7 @@ static bool rom_mode_gauge_dm_initialized(struct bq27x00_device_info *di)
 	u16 flags;
 
 	flags = bq27xxx_read(di, BQ27XXX_REG_FLAGS, false);
-
+printk("bq27621 dm initialzed flag:%x\n",flags);
 	dev_dbg(di->dev, "%s: flags - 0x%04x\n", __func__, flags);
 
 	if (flags & BQ274XX_FLAG_ITPOR)
@@ -1135,6 +1166,7 @@ static void rom_mode_gauge_dm_init(struct bq27x00_device_info *di)
 		msleep(100);
 		timeout -= 100;
 	}
+printk("bq27621 dm init timeout:%d dm count:%d\n",timeout,di->dm_regs_count);
 
 	if (timeout <= 0) {
 		dev_err(di->dev, "%s: INITCOMP not set after %d seconds\n",
@@ -1206,7 +1238,7 @@ static void bq27x00_battery_poll(struct work_struct *work)
 		schedule_delayed_work(&di->work, poll_interval * HZ);
 	}
 #endif
-	schedule_delayed_work(&di->work, msecs_to_jiffies(60000));
+	schedule_delayed_work(&di->work, msecs_to_jiffies(20000));
 }
 
 /*
@@ -1803,7 +1835,7 @@ static int __init bq27x00_battery_probe(struct i2c_client *client,
 	}
 
 	memcpy(di->regs, regs, NUM_REGS);
-
+printk("eztest bq27621 27x00 probe chip:%d\n",di->chip);
 	di->fw_ver = bq27x00_battery_read_fw_version(di);
 	dev_info(&client->dev, "Gas Guage fw version is 0x%04x\n", di->fw_ver);
 
@@ -1974,6 +2006,7 @@ static int bq27000_battery_probe(struct platform_device *pdev)
 	di->bat.name = pdata->name ?: dev_name(&pdev->dev);
 	di->bus.read = &bq27000_read_platform;
 
+printk("eztest bq27621 27000 probe chip:%d\n",di->chip);
 	ret = bq27x00_powersupply_init(di);
 	if (ret)
 		goto err_free;
