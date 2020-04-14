@@ -207,7 +207,7 @@ enum dsi_pm_type {
 #define PANEL_XCLR	GPIO_BASE + 35
 #define EN_SYS_CLK	GPIO_BASE + 36
 #define EN_DSI_CV	GPIO_BASE + 97
-#define HUD_SW		GPIO_BASE + 115
+// #define HUD_SW		GPIO_BASE + 115
 
 extern struct device dsi_dev;
 extern u32 dsi_irq;

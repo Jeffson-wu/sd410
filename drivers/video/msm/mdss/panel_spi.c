@@ -45,6 +45,7 @@
 #define SPI_SCLK	PANEL_GPIO_BASE + 19
 #define SPI_MOSI	PANEL_GPIO_BASE + 16
 #define SPI_MISO	PANEL_GPIO_BASE + 17
+#define HUD_SW		PANEL_GPIO_BASE + 115
 
 #define GPIO26_GPIO_CNTRL 0x169	/* backlight */
 #define PANEL1_ON	0x09 // mclkpol 1:0x07 0:0x05
@@ -730,6 +731,7 @@ void panel_spi_gpio_init(void)
 	gpio_direction_output(SPI_MOSI, 0);
 //	gpio_direction_output(SPI_MISO, 0);
 	ret = gpio_direction_input(SPI_MISO);
+	ret = gpio_direction_input(HUD_SW);
 	panel_set_brightness(200);
 	hud_gpio_init = 1;
 	mdelay(5);

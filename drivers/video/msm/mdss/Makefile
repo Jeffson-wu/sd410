@@ -32,7 +32,7 @@ mdss-dsi-objs += mdss_dsi_phy.o
 obj-$(CONFIG_FB_MSM_MDSS) += mdss-dsi.o
 obj-$(CONFIG_FB_MSM_MDSS) += mdss_panel.o
 
-obj-$(CONFIG_FB_MSM_MDSS) += sn65dsi84-dsi2lvds.o
+#obj-$(CONFIG_FB_MSM_MDSS) += sn65dsi84-dsi2lvds.o
 obj-$(CONFIG_FB_MSM_MDSS) += vx5b3a.o
 obj-$(CONFIG_FB_MSM_MDSS) += panel_spi.o
 #obj-$(CONFIG_FB_MSM_MDSS) += spi_test.o
