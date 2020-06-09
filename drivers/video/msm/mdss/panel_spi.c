@@ -699,6 +699,7 @@ void panel_set_brightness(int value)
 {
 	unsigned int val;
 
+	value *= 2;
 	if(value > MAX_LUM) val = MAX_LUM;
 	else val = value;
 
