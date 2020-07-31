@@ -105,7 +105,8 @@ PRODUCT_COPY_FILES += \
     device/qcom/msm8916_64/i2cget:system/bin/i2cget \
     device/qcom/msm8916_64/i2cset:system/bin/i2cset \
     device/qcom/msm8916_64/i2ctransfer:system/bin/i2ctransfer \
-    device/qcom/msm8916_64/inkey.sh:system/bin/inkey.sh
+    device/qcom/msm8916_64/inkey.sh:system/bin/inkey.sh \
+    device/qcom/msm8916_64/sound.sh:system/bin/sound.sh
 
 #OTA files
 PRODUCT_COPY_FILES += \
