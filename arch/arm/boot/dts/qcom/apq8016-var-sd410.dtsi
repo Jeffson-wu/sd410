@@ -140,6 +140,7 @@
 			eztest,mirror_v;
 		};
 */
+
  	};
 
 	i2c@78b9000 { /* BLSP1 QUP5 */
@@ -183,6 +184,7 @@
 			};
 		};
 /* move */
+/* DVK touch screen remark
 		focaltech@38{
 			compatible = "focaltech,5x06";
 			reg = <0x38>;
@@ -217,6 +219,17 @@
 			focaltech,fw-auto-cal;
 			focaltech,mirror_h;
 			focaltech,mirror_v;
+		};
+ remark and not use */
+		/* Borderless compass sensor */
+		ak09918@0c {
+			compatible = "akm,ak09918";
+			reg = <0x0c>;
+		};
+/* Borderless motion sensor */
+		icm20600@69 {
+			compatible = "invensense,icm20600";
+			reg = <0x69>;
 		};
 	};
 

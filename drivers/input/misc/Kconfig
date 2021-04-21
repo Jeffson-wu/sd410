@@ -775,6 +775,26 @@ config SENSORS_MMC3416X
 	  To compile this driver as a module, choose M here: the
 	  module will be called mmc3416x.
 
+config SENSORS_AK09918
+	tristate "AK09918 3-axis electronic compass sensor driver"
+	depends on I2C
+	help
+	  Say Y here if you want to enable the ak09918 ecompass sensor
+	  driver.
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called ak09918.
+
+config SENSORS_ICM20600
+	tristate "ICM20600 sensor driver"
+	depends on I2C
+	help
+	  Say Y here if you want to enable the icm20600 ecompass sensor
+	  driver.
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called icm20600.
+
 config SENSORS_AKM09911
 	tristate "AKM09911 3-axis electronic compass sensor driver"
 	depends on I2C

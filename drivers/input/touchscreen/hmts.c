@@ -117,6 +117,7 @@ struct hmts_data {
 };
 
 int rep_x, rep_y;
+int tap_hold = 0;
 u32 mrep_x, mrep_y;
 u32 leave_x = 0;
 u32 leave_y = 0;
@@ -459,7 +460,7 @@ static void hmts_poll(struct work_struct *work)
 
 #if GESTURE_EN
 	if((buf[0] & 2)||(buf[4] > 0)){
-		printk("eztest hmts----------->mode[%x] gesture[%x] diag[%x]\n",buf[0],buf[4],buf[5]);
+		printk("eztest hmts----------->mode[%x] gesture[%x] diag[%x] th[%d]\n",buf[0],buf[4],buf[5],tap_hold);
 		ges = buf[4];
 		switch(ges){
 			case 0x41:
@@ -471,6 +472,7 @@ static void hmts_poll(struct work_struct *work)
 				input_report_key(ip_dev, KEY_NEXTSONG, 0);
 //				volumn_bar = true;
 //				input_sync(ip_dev);
+				tap_hold = 0;
 				break;
 			case 0x61:
 			case 0x62:
@@ -481,6 +483,7 @@ static void hmts_poll(struct work_struct *work)
 				input_report_key(ip_dev, KEY_PREVIOUSSONG, 0);
 //				volumn_bar = true;
 //				input_sync(ip_dev);
+				tap_hold = 0;
 				break;
 			case 0x31:
 			case 0x32:
@@ -492,6 +495,7 @@ static void hmts_poll(struct work_struct *work)
 //				}
 //				input_sync(ip_dev);
 				volumn_bar = true;
+				tap_hold = 0;
 				break;
 			case 0x51:
 			case 0x52:
@@ -503,6 +507,7 @@ static void hmts_poll(struct work_struct *work)
 //				}
 //				input_sync(ip_dev);
 				volumn_bar = true;
+				tap_hold = 0;
 				break;
 			case 0x10:
 			case 0x20:
@@ -510,23 +515,36 @@ static void hmts_poll(struct work_struct *work)
 				input_sync(ip_dev);
 				input_report_key(ip_dev, KEY_PLAYPAUSE, 0);
 				prv_ges = KEY_PLAYPAUSE;
+				tap_hold = 0;
 				break;
 			case 0x11:
 				if(volumn_bar){
 					input_report_key(ip_dev, prv_ges, 1);
 					input_sync(ip_dev);
 					input_report_key(ip_dev, prv_ges, 0);
+				}else{
+					tap_hold++;
+					if(tap_hold > 20){
+						tap_hold = 0;
+						input_report_key(ip_dev, KEY_F15, 1);
+						input_sync(ip_dev);
+						input_report_key(ip_dev, KEY_F15, 0);
+					}
 				}
 				break;
 			default:
 				volumn_bar = false;
+				tap_hold = 0;
 				break;
 				
 		}
 	}
 #endif
 	if(buf[0] & 0x3) input_sync(ip_dev);
-	else volumn_bar = false;
+	else{
+		volumn_bar = false;
+		tap_hold = 0;
+	}
 quiet_exit:
 	schedule_delayed_work(&data->hmts_work,
 			msecs_to_jiffies(POLL_INTERVAL));
@@ -1061,6 +1079,7 @@ static int hmts_probe(struct i2c_client *client,
 	__set_bit(KEY_PREVIOUSSONG, input_dev->keybit);
 	__set_bit(KEY_NEXTSONG, input_dev->keybit);
 	__set_bit(KEY_PLAYPAUSE, input_dev->keybit);
+	__set_bit(KEY_F15, input_dev->keybit);
 
 #if MOUSE_MODE
 	input_mt_init_slots(input_dev, pdata->num_max_touches, 0);
